@@ -1,0 +1,6 @@
+{
+  "name": "Chord Sheet Studio",
+  "description": "Turn chord progressions into printable A4 chord sheets with guitar, keyboard, and ukulele voicings, transposition, capo support, audio playback, and offline PWA support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
