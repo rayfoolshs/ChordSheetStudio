@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import {
   ArrowDown,
   ArrowUp,
+  Drum,
   FolderOpen,
   Link2,
   Play,
@@ -20,14 +21,17 @@ import {
   ALL_GM_OPTIONS,
   getSoundfontState,
   onSoundfontStatus,
+  playDrumHit,
   playMetronomeClick,
   playSoundfontChord,
   POPULAR_GM_OPTIONS,
   preloadSoundfont,
+  setDrumVolume,
   stopAllAudio,
   type SoundfontKit,
   type SoundfontStatus,
 } from './lib/audio';
+import { DRUM_PATTERN_OPTIONS, getBeatsPerBar, getDrumPattern, isSwingPattern } from './lib/drums';
 import {
   CHORD_SUGGESTIONS,
   getGuitarVoicings,
@@ -56,9 +60,10 @@ import {
   saveActiveState,
   encodeShareUrl,
 } from './lib/storage';
-import type { ParsedChord, SavedChart, SheetState, TimeSignature } from './types';
+import type { DrumPattern, ParsedChord, SavedChart, SheetState, TimeSignature } from './types';
 
 const SECTION_LABEL_SUGGESTIONS = ['Intro', 'Verse', 'Pre-Chorus', 'Chorus', 'Bridge', 'Solo', 'Outro'];
+const BASE_URL = import.meta.env.BASE_URL;
 
 export default function App() {
   const [state, setState] = useState<SheetState>(() => loadActiveState());
@@ -87,6 +92,7 @@ export default function App() {
   const slotRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const toastTimerRef = useRef<number | null>(null);
   const playbackTimerRef = useRef<number | null>(null);
+  const liveDrumsRef = useRef({ pattern: state.drumPattern, swing: state.swing });
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -129,6 +135,15 @@ export default function App() {
       if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
     };
   }, [pdfBlobUrl]);
+
+  // Drum controls change live, without restarting playback
+  useEffect(() => {
+    liveDrumsRef.current = { pattern: state.drumPattern, swing: state.swing };
+  }, [state.drumPattern, state.swing]);
+
+  useEffect(() => {
+    setDrumVolume(state.drumVolume / 100);
+  }, [state.drumVolume]);
 
   // Subscribe to GM SoundFont loading state
   useEffect(() => {
@@ -233,38 +248,64 @@ export default function App() {
       return;
     }
 
-    const beatsPerBar =
-      state.timeSignature === '3/4' ? 3 : state.timeSignature === '2/4' ? 2 : state.timeSignature === '6/8' ? 6 : 4;
+    const beatsPerBar = getBeatsPerBar(state.timeSignature);
     const beatMs =
       state.timeSignature === '6/8' ? (60000 / state.tempo) * 0.5 : 60000 / state.tempo;
+    // The sequencer runs on eighth notes so drums can play on and off the beat
+    const stepMs = beatMs / 2;
+    const stepsPerBar = beatsPerBar * 2;
 
     let step = 0;
     setIsPlaying(true);
 
     const tick = () => {
-      const barIdx = Math.floor(step / beatsPerBar) % sequence.length;
-      const beatInBar = step % beatsPerBar;
+      const barIdx = Math.floor(step / stepsPerBar) % sequence.length;
+      const stepInBar = step % stepsPerBar;
+      const beatInBar = Math.floor(stepInBar / 2);
+      const onBeat = stepInBar % 2 === 0;
       const item = sequence[barIdx];
 
-      setActiveCell({ rowIdx: item.rowIdx, colIdx: item.colIdx });
-      if (metronomeOn) {
-        playMetronomeClick(beatInBar === 0);
-      }
+      if (onBeat) {
+        setActiveCell({ rowIdx: item.rowIdx, colIdx: item.colIdx });
+        if (metronomeOn) {
+          playMetronomeClick(beatInBar === 0);
+        }
 
-      if (item.chords.length > 0) {
-        const splitInterval = Math.max(1, Math.floor(beatsPerBar / item.chords.length));
-        if (beatInBar % splitInterval === 0) {
-          const chordIdx = Math.min(item.chords.length - 1, Math.floor(beatInBar / splitInterval));
-          if (beatInBar === chordIdx * splitInterval) {
+        if (item.chords.length > 0) {
+          const splitInterval = Math.max(1, Math.floor(beatsPerBar / item.chords.length));
+          if (beatInBar % splitInterval === 0) {
+            const chordIdx = Math.min(
+              item.chords.length - 1,
+              Math.floor(beatInBar / splitInterval)
+            );
             playChordAudio(item.chords[chordIdx]);
           }
         }
       }
+
+      const liveDrums = liveDrumsRef.current;
+      if (liveDrums.pattern !== 'none') {
+        const spec = getDrumPattern(liveDrums.pattern, state.timeSignature);
+        const swingAmount =
+          isSwingPattern(liveDrums.pattern) && state.timeSignature !== '6/8'
+            ? liveDrums.swing / 100
+            : 0;
+        // Delay off-beat eighths: 0 = straight, 1 = triplet shuffle
+        const swingOffset =
+          !onBeat && swingAmount > 0 ? (stepMs / 1000) * (swingAmount / 3) : 0;
+
+        spec.hits.forEach((hit) => {
+          if (hit.step === stepInBar) {
+            playDrumHit(hit.voice, { velocity: hit.velocity, when: swingOffset });
+          }
+        });
+      }
+
       step += 1;
     };
 
     tick();
-    playbackTimerRef.current = window.setInterval(tick, beatMs);
+    playbackTimerRef.current = window.setInterval(tick, stepMs);
   };
 
   // Stop playback if tempo, time signature, or progression changes while playing
@@ -540,17 +581,22 @@ export default function App() {
       <header className="no-print mx-auto flex w-[min(100%-32px,1320px)] items-center justify-between gap-6 border-b border-[#dcd3c6] py-4">
         {/* Zone 1: Single-line brand wordmark */}
         <a
-          href="/"
+          href={BASE_URL}
           className="inline-flex items-center gap-3 text-[#211f1b] no-underline whitespace-nowrap shrink-0"
         >
           <img
-            src="/icon.svg"
+            src={`${BASE_URL}icon.svg`}
             alt=""
             className="h-9 w-9 rounded-lg shadow-sm"
             aria-hidden="true"
           />
-          <span className="font-display text-xl font-bold tracking-tight text-[#211f1b]">
-            Chord Sheet <em className="text-[#c84b36] italic">Studio</em>
+          <span className="flex flex-col leading-none">
+            <span className="mb-1 text-[11px] font-medium tracking-wide text-[#8a7f70]">
+              Created by Ray Foo
+            </span>
+            <span className="font-display text-xl font-bold tracking-tight text-[#211f1b]">
+              Chord Sheet <em className="text-[#c84b36] italic">Studio</em>
+            </span>
           </span>
         </a>
 
@@ -960,6 +1006,80 @@ export default function App() {
 
               <span className="font-mono-tabular text-xs text-[#6f675c]">
                 {state.rows.length} / {MAX_ROWS} rows · {state.columns} bars/row
+              </span>
+            </div>
+
+            {/* Drum machine pattern + volume */}
+            <div className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-2.5 rounded-lg border border-[#dcd3c6] bg-white/70 px-3 py-2.5">
+              <label className="flex items-center gap-2 text-xs font-semibold text-[#4a463f]">
+                <Drum className="h-3.5 w-3.5 text-[#6f675c]" aria-hidden="true" />
+                <span>Drums</span>
+                <select
+                  value={state.drumPattern}
+                  onChange={(e) =>
+                    setState((prev) => ({
+                      ...prev,
+                      drumPattern: e.target.value as DrumPattern,
+                    }))
+                  }
+                  aria-label="Drum pattern"
+                  className="rounded-lg border border-[#b9ae9e] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#211f1b] cursor-pointer"
+                >
+                  {DRUM_PATTERN_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {isSwingPattern(state.drumPattern) && (
+                <label className="flex items-center gap-2 text-xs font-semibold text-[#4a463f]">
+                  <span>Swing</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={state.swing}
+                    onChange={(e) =>
+                      setState((prev) => ({ ...prev, swing: Number(e.target.value) }))
+                    }
+                    aria-label="Swing amount"
+                    className="h-1.5 w-24 cursor-pointer accent-[#c84b36]"
+                  />
+                  <span className="font-mono-tabular w-8 text-right text-[11px] text-[#6f675c]">
+                    {state.swing}%
+                  </span>
+                </label>
+              )}
+
+              <label className="flex items-center gap-2 text-xs font-semibold text-[#4a463f]">
+                <Volume2 className="h-3.5 w-3.5 text-[#6f675c]" aria-hidden="true" />
+                <span>Drum volume</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={state.drumVolume}
+                  onChange={(e) =>
+                    setState((prev) => ({ ...prev, drumVolume: Number(e.target.value) }))
+                  }
+                  aria-label="Drum volume"
+                  className="h-1.5 w-24 cursor-pointer accent-[#c84b36]"
+                />
+                <span className="font-mono-tabular w-8 text-right text-[11px] text-[#6f675c]">
+                  {state.drumVolume}%
+                </span>
+              </label>
+
+              <span className="text-[11px] text-[#6f675c]">
+                {state.drumPattern === 'none'
+                  ? 'Choose a feel to add drums to playback'
+                  : isSwingPattern(state.drumPattern)
+                    ? 'Swing applies to Blues and Jazz only'
+                    : 'Straight feel'}
               </span>
             </div>
 

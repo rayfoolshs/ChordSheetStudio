@@ -1,5 +1,6 @@
 export type HandSide = 'right' | 'left';
 export type TimeSignature = '4/4' | '3/4' | '6/8' | '2/4';
+export type DrumPattern = 'none' | 'blues' | 'jazz' | 'bossa' | 'rock' | 'ballad';
 
 export interface NoteSpelling {
   letter: string;
@@ -105,6 +106,9 @@ export interface SheetState {
   timeSignature: TimeSignature;
   gmInstrument: string;
   soundfontKit: 'FluidR3_GM' | 'MusyngKite';
+  drumPattern: DrumPattern;
+  drumVolume: number; // 0-100
+  swing: number; // 0-100, only used by blues/jazz patterns
   capo: number;
   showCapoShapes: boolean;
   columns: number;

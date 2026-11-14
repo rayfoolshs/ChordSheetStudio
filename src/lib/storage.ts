@@ -1,4 +1,4 @@
-import type { ProgressionRow, SavedChart, SheetState, TimeSignature } from '../types';
+import type { DrumPattern, ProgressionRow, SavedChart, SheetState, TimeSignature } from '../types';
 
 export const MAX_COLUMNS = 8;
 export const MAX_ROWS = 12;
@@ -35,6 +35,9 @@ export function createDefaultState(): SheetState {
     timeSignature: '4/4',
     gmInstrument: 'acoustic_grand_piano',
     soundfontKit: 'FluidR3_GM',
+    drumPattern: 'none',
+    drumVolume: 75,
+    swing: 60,
     capo: 0,
     showCapoShapes: false,
     columns: 4,
@@ -72,6 +75,18 @@ function sanitizeTimeSignature(val: unknown): TimeSignature {
   return '4/4';
 }
 
+function sanitizeDrumPattern(val: unknown): DrumPattern {
+  if (val === 'blues' || val === 'jazz' || val === 'bossa' || val === 'rock' || val === 'ballad') {
+    return val;
+  }
+  return 'none';
+}
+
+function clampOr(val: unknown, fallback: number, min: number, max: number): number {
+  const n = Number(val);
+  return Number.isFinite(n) ? clamp(Math.round(n), min, max) : fallback;
+}
+
 export function sanitizeSheetState(raw: unknown): SheetState {
   const def = createDefaultState();
   if (!raw || typeof raw !== 'object') return def;
@@ -105,6 +120,9 @@ export function sanitizeSheetState(raw: unknown): SheetState {
     gmInstrument:
       typeof s.gmInstrument === 'string' && s.gmInstrument ? s.gmInstrument : def.gmInstrument,
     soundfontKit: s.soundfontKit === 'MusyngKite' ? 'MusyngKite' : 'FluidR3_GM',
+    drumPattern: sanitizeDrumPattern(s.drumPattern),
+    drumVolume: clampOr(s.drumVolume, def.drumVolume, 0, 100),
+    swing: clampOr(s.swing, def.swing, 0, 100),
     capo: clamp(Number(s.capo) || 0, 0, 11),
     showCapoShapes: Boolean(s.showCapoShapes),
     columns,
