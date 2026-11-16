@@ -43,7 +43,7 @@ See [docs/DRUMS.md](docs/DRUMS.md) for pattern details and implementation notes.
 ### Library, sharing, and offline use
 
 - Save charts to the browser library
-- Export/import chart state
+- **Save menu** in the header downloads the sheet as a **PDF** or **PNG**, saves a **`.json` project file**, and re-opens a saved project file
 - Shareable chart links with the song data encoded in the URL hash
 - Installable PWA with offline support
 - Cached SoundFonts and web fonts
@@ -103,6 +103,17 @@ Yes. The metronome and drums have separate controls:
 - **Drum volume** sets the drum bus level from `0–100%`.
 - The drum bus has a gentle compressor so layered hits do not clip.
 
+## How do I save a chord sheet to a file?
+
+Open the **Save** menu in the header:
+
+- **Download PDF** — saves the A4 sheet as a PDF file directly, without the print dialog.
+- **Download PNG** — saves a high-resolution image of the sheet for chats, slides, or worksheets.
+- **Save project (.json)** — saves every setting (chords, key, capo, drums, voicings) so you can edit it later.
+- **Open project (.json)** — loads a saved project file back into the editor.
+
+File names follow the song title, for example `I-Got-A-Feeling.pdf`. The **Print / Save PDF** button still opens the browser print dialog for vector output and paper printing.
+
 ## GitHub Pages
 
 The app is deployed automatically to GitHub Pages from the `main` branch.
@@ -125,7 +136,7 @@ src/
     audio.ts              SoundFont playback, synth fallback, drum synthesis
     chords.ts             Chord parsing and voicing generation
     drums.ts              Drum pattern definitions and meter handling
-    pdf.ts                A4 print zoom and iOS PDF export
+    pdf.ts                A4 print zoom, PDF/PNG rendering, file downloads
     storage.ts            Local storage, defaults, sanitization, share links
 public/                   PWA icons and app icon
 docs/                     Additional documentation

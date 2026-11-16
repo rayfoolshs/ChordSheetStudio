@@ -18,6 +18,30 @@ export function isStandaloneIOS(): boolean {
   return navStandalone || mediaStandalone;
 }
 
+/** Turns a song title into a filesystem-safe name without an extension. */
+export function safeFileName(title: string, fallback = 'chord-sheet'): string {
+  const cleaned = (title || '')
+    .trim()
+    .replace(/[^\w\- ]+/g, '')
+    .replace(/\s+/g, '-');
+  return cleaned || fallback;
+}
+
+/** Saves a generated blob to the user's downloads using a temporary anchor. */
+export function downloadBlob(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.rel = 'noopener';
+  anchor.style.display = 'none';
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  // Revoking immediately can cancel the download in some browsers.
+  window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
 function base64ToBytes(base64: string): Uint8Array {
   const binary = window.atob(base64);
   const bytes = new Uint8Array(binary.length);
@@ -98,15 +122,36 @@ export async function renderElementToA4Pdf(
     const previewUrl = canvas.toDataURL('image/jpeg', 0.94);
     const jpeg = base64ToBytes(previewUrl.split(',')[1]);
     const blob = buildA4Pdf(jpeg, canvas.width, canvas.height);
-    const safeTitle = (title || 'chord-sheet')
-      .trim()
-      .replace(/[^\w\- ]+/g, '')
-      .replace(/\s+/g, '-');
     return {
       blob,
       previewUrl,
-      fileName: `${safeTitle || 'chord-sheet'}.pdf`,
+      fileName: `${safeFileName(title)}.pdf`,
     };
+  } finally {
+    document.body.classList.remove('is-capturing');
+  }
+}
+
+/** Renders the A4 sheet to a high-resolution PNG blob for direct download. */
+export async function renderElementToPng(
+  element: HTMLElement,
+  title: string
+): Promise<{ blob: Blob; fileName: string }> {
+  document.body.classList.add('is-capturing');
+  try {
+    const canvas = await html2canvas(element, {
+      backgroundColor: '#fffdf8',
+      scale: 3,
+      useCORS: true,
+      logging: false,
+    });
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((result) => {
+        if (result) resolve(result);
+        else reject(new Error('Could not render the sheet as an image'));
+      }, 'image/png');
+    });
+    return { blob, fileName: `${safeFileName(title)}.png` };
   } finally {
     document.body.classList.remove('is-capturing');
   }

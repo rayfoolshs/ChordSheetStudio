@@ -16,6 +16,7 @@ import { LibraryModal } from './components/LibraryModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { PrintHelpModal } from './components/PrintHelpModal';
 import { PWAInstallButton } from './components/PWAInstallButton';
+import { SaveMenu } from './components/SaveMenu';
 import { SheetPreview } from './components/SheetPreview';
 import {
   ALL_GM_OPTIONS,
@@ -47,7 +48,14 @@ import {
   transposeRoot,
   ukuleleShapeToMidi,
 } from './lib/chords';
-import { computePrintZoom, isStandaloneIOS, renderElementToA4Pdf } from './lib/pdf';
+import {
+  computePrintZoom,
+  downloadBlob,
+  isStandaloneIOS,
+  renderElementToA4Pdf,
+  renderElementToPng,
+  safeFileName,
+} from './lib/pdf';
 import {
   createDefaultState,
   loadActiveState,
@@ -87,6 +95,9 @@ export default function App() {
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [pdfFileName, setPdfFileName] = useState('chord-sheet.pdf');
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+
+  // Header save-menu progress ('pdf' / 'png' while the sheet is being rendered)
+  const [saveBusy, setSaveBusy] = useState<'pdf' | 'png' | null>(null);
 
   const paperRef = useRef<HTMLDivElement | null>(null);
   const slotRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -554,6 +565,62 @@ export default function App() {
     }
   };
 
+  const handleSavePdfFile = async () => {
+    if (!paperRef.current || saveBusy) return;
+    setSaveBusy('pdf');
+    showToast('Preparing PDF file…');
+    try {
+      const result = await renderElementToA4Pdf(paperRef.current, state.title);
+      downloadBlob(result.blob, result.fileName);
+      showToast(`Saved ${result.fileName}`);
+    } catch {
+      showToast('Could not create the PDF file');
+    } finally {
+      setSaveBusy(null);
+    }
+  };
+
+  const handleSavePngFile = async () => {
+    if (!paperRef.current || saveBusy) return;
+    setSaveBusy('png');
+    showToast('Preparing PNG image…');
+    try {
+      const result = await renderElementToPng(paperRef.current, state.title);
+      downloadBlob(result.blob, result.fileName);
+      showToast(`Saved ${result.fileName}`);
+    } catch {
+      showToast('Could not create the PNG image');
+    } finally {
+      setSaveBusy(null);
+    }
+  };
+
+  const handleSaveJsonFile = () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const fileName = `${safeFileName(state.title)}.json`;
+    downloadBlob(blob, fileName);
+    showToast(`Saved ${fileName}`);
+  };
+
+  const handleOpenJsonFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result || ''));
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('bad file');
+        if (!Array.isArray((parsed as { rows?: unknown }).rows)) throw new Error('bad file');
+        const imported = sanitizeSheetState(parsed);
+        setState(imported);
+        window.history.replaceState(null, '', window.location.pathname);
+        showToast(`Opened "${imported.title}"`);
+      } catch {
+        showToast('That file is not a Chord Sheet Studio project');
+      }
+    };
+    reader.onerror = () => showToast('Could not read that file');
+    reader.readAsText(file);
+  };
+
   const handleSaveToLibrary = (title: string) => {
     const newEntry: SavedChart = {
       id: `chart-${Date.now().toString(36)}`,
@@ -578,7 +645,7 @@ export default function App() {
   return (
     <div className="min-h-screen pb-16">
       {/* Top Bar: Clean 3-zone contract */}
-      <header className="no-print mx-auto flex w-[min(100%-32px,1320px)] items-center justify-between gap-6 border-b border-[#dcd3c6] py-4">
+      <header className="no-print mx-auto flex w-[min(100%-32px,1320px)] items-center justify-between gap-3 sm:gap-6 border-b border-[#dcd3c6] py-4">
         {/* Zone 1: Single-line brand wordmark */}
         <a
           href={BASE_URL}
@@ -626,17 +693,29 @@ export default function App() {
           </a>
         </nav>
 
-        {/* Zone 3: Install + Primary Print CTA */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          <PWAInstallButton />
+        {/* Zone 3: Install + Save + Primary Print CTA */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          <div className="hidden sm:flex items-center">
+            <PWAInstallButton />
+          </div>
+          <SaveMenu
+            busy={saveBusy}
+            onSavePdf={() => void handleSavePdfFile()}
+            onSavePng={() => void handleSavePngFile()}
+            onSaveJson={handleSaveJsonFile}
+            onOpenJson={handleOpenJsonFile}
+          />
           <button
             type="button"
             onClick={() => void handlePrint()}
             disabled={isBuildingPdf}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#c84b36] px-4 py-2 text-xs font-semibold text-[#fffdf8] shadow-sm transition hover:bg-[#a53625] disabled:opacity-60 whitespace-nowrap shrink-0 cursor-pointer"
+            aria-label={isBuildingPdf ? 'Preparing PDF' : 'Print or save PDF'}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#c84b36] px-3 sm:px-4 py-2 text-xs font-semibold text-[#fffdf8] shadow-sm transition hover:bg-[#a53625] disabled:opacity-60 whitespace-nowrap shrink-0 cursor-pointer"
           >
             <Printer className="h-4 w-4" aria-hidden="true" />
-            {isBuildingPdf ? 'Preparing PDF…' : 'Print / Save PDF'}
+            <span className="hidden sm:inline">
+              {isBuildingPdf ? 'Preparing PDF…' : 'Print / Save PDF'}
+            </span>
           </button>
         </div>
       </header>
@@ -644,6 +723,9 @@ export default function App() {
       <main className="mx-auto mt-6 w-[min(100%-32px,1320px)] space-y-6">
         {/* Mobile quick bar */}
         <div className="no-print flex flex-wrap items-center gap-2 md:hidden">
+          <div className="flex sm:hidden items-center">
+            <PWAInstallButton />
+          </div>
           <button
             type="button"
             onClick={() => setLibraryOpen(true)}
