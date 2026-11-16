@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import {
   ArrowDown,
   ArrowUp,
+  BookOpen,
   Drum,
   FolderOpen,
   Link2,
@@ -13,6 +14,7 @@ import {
   Volume2,
 } from 'lucide-react';
 import { LibraryModal } from './components/LibraryModal';
+import { ManualModal } from './components/ManualModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { PrintHelpModal } from './components/PrintHelpModal';
 import { PWAInstallButton } from './components/PWAInstallButton';
@@ -77,6 +79,7 @@ export default function App() {
   const [state, setState] = useState<SheetState>(() => loadActiveState());
   const [savedCharts, setSavedCharts] = useState<SavedChart[]>(() => loadSavedCharts());
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
   const [printZoom, setPrintZoom] = useState(1);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -691,6 +694,14 @@ export default function App() {
           >
             Live A4 Preview
           </a>
+          <button
+            type="button"
+            onClick={() => setManualOpen(true)}
+            className="inline-flex items-center gap-1.5 hover:text-[#211f1b] hover:underline underline-offset-4 whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            <BookOpen className="h-4 w-4" aria-hidden="true" />
+            Manual
+          </button>
         </nav>
 
         {/* Zone 3: Install + Save + Primary Print CTA */}
@@ -741,6 +752,14 @@ export default function App() {
           >
             <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
             Share Link
+          </button>
+          <button
+            type="button"
+            onClick={() => setManualOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#b9ae9e] bg-[#fffdf8] px-3 py-2 text-xs font-semibold text-[#211f1b] cursor-pointer"
+          >
+            <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
+            Manual
           </button>
         </div>
 
@@ -1358,6 +1377,8 @@ export default function App() {
         }}
         onClose={() => setLibraryOpen(false)}
       />
+
+      <ManualModal open={manualOpen} onClose={() => setManualOpen(false)} />
 
       <PrintHelpModal
         open={pdfModalOpen}

@@ -6,6 +6,7 @@ All notable changes to Chord Sheet Studio are documented here.
 
 ### Added
 
+- **In-app manual:** the 8-page Chord Sheet Studio handbook opens from the header **Manual** button, with chapter shortcuts, arrow-key paging, and a downloadable PDF.
 - **Save to file menu:** the header **Save** button downloads the A4 sheet as a PDF or PNG, saves a `.json` project file, and opens a saved project file from disk.
 - **Drum machine patterns:** Blues, Jazz, Bossa Nova, Rock, and Ballad, plus an Off option.
 - **Adjustable swing:** 0–100% control shown for the Blues and Jazz patterns only.

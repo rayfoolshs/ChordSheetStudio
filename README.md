@@ -44,6 +44,7 @@ See [docs/DRUMS.md](docs/DRUMS.md) for pattern details and implementation notes.
 
 - Save charts to the browser library
 - **Save menu** in the header downloads the sheet as a **PDF** or **PNG**, saves a **`.json` project file**, and re-opens a saved project file
+- **Built-in manual** (`Manual` in the header): the 8-page reference handbook opens in the app, with chapter jumps, arrow-key paging, and a PDF download. Pages are cached for offline use
 - Shareable chart links with the song data encoded in the URL hash
 - Installable PWA with offline support
 - Cached SoundFonts and web fonts
@@ -103,6 +104,16 @@ Yes. The metronome and drums have separate controls:
 - **Drum volume** sets the drum bus level from `0–100%`.
 - The drum bus has a gentle compressor so layered hits do not clip.
 
+## Where is the user manual?
+
+Click **Manual** in the header (or in the mobile quick bar). The 8-page handbook opens inside the app:
+
+- Chapter chips jump straight to a page; **Previous** / **Next** and the ← → arrow keys page through it.
+- **Download PDF** saves `Chord-Sheet-Studio-Manual.pdf` for printing or sharing.
+- Manual pages are cached by the service worker, so the handbook is available offline.
+
+Source assets live in [`public/manual/`](public/manual): `page-01.webp` … `page-08.webp` plus the printable PDF.
+
 ## How do I save a chord sheet to a file?
 
 Open the **Save** menu in the header:
@@ -130,7 +141,7 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full deployment and trouble
 src/
   App.tsx                 App shell, editor, playback scheduler, UI
   types.ts                Shared types and SheetState
-  components/             Preview, diagrams, library, print help, PWA UI
+  components/             Preview, diagrams, library, manual viewer, print help, PWA UI
   hooks/                  PWA install hook
   lib/
     audio.ts              SoundFont playback, synth fallback, drum synthesis
@@ -138,7 +149,7 @@ src/
     drums.ts              Drum pattern definitions and meter handling
     pdf.ts                A4 print zoom, PDF/PNG rendering, file downloads
     storage.ts            Local storage, defaults, sanitization, share links
-public/                   PWA icons and app icon
+public/                   PWA icons, app icon, and manual pages/PDF
 docs/                     Additional documentation
 ```
 
