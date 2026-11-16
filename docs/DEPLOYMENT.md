@@ -4,8 +4,8 @@ Chord Sheet Studio is a static Vite app. The production build is deployed to Git
 
 ## Live site
 
-- **URL:** https://rayfoolshs.github.io/ChordSheetStudioPro/
-- **Repository:** https://github.com/rayfoolshs/ChordSheetStudioPro
+- **URL:** https://rayfoolshs.github.io/ChordSheetStudio/
+- **Repository:** https://github.com/rayfoolshs/ChordSheetStudio
 
 ## How the base path works
 
@@ -15,10 +15,10 @@ GitHub Pages project sites are served from a subpath:
 https://<owner>.github.io/<repository>/
 ```
 
-This project uses `/ChordSheetStudioPro/` as its production base path. `vite.config.ts` selects it only when `GITHUB_PAGES=true`:
+This project uses `/ChordSheetStudio/` as its production base path. `vite.config.ts` selects it only when `GITHUB_PAGES=true`:
 
 ```ts
-const base = process.env.GITHUB_PAGES === 'true' ? '/ChordSheetStudioPro/' : '/';
+const base = process.env.GITHUB_PAGES === 'true' ? '/ChordSheetStudio/' : '/';
 ```
 
 The base path is applied to:
@@ -64,7 +64,7 @@ Repository → Settings → Pages → Build and deployment → Source → GitHub
 Or with the GitHub CLI:
 
 ```bash
-gh api -X POST repos/rayfoolshs/ChordSheetStudioPro/pages \
+gh api -X POST repos/rayfoolshs/ChordSheetStudio/pages \
   -f build_type=workflow
 ```
 
@@ -79,10 +79,10 @@ GITHUB_PAGES=true npm run build
 npm run preview
 ```
 
-Vite prints the local preview URL. Because the base path is `/ChordSheetStudioPro/`, open the preview at:
+Vite prints the local preview URL. Because the base path is `/ChordSheetStudio/`, open the preview at:
 
 ```text
-http://localhost:4173/ChordSheetStudioPro/
+http://localhost:4173/ChordSheetStudio/
 ```
 
 Inspect `dist/index.html` and `dist/manifest.webmanifest` if you need to confirm that the base path was applied.
@@ -90,7 +90,7 @@ Inspect `dist/index.html` and `dist/manifest.webmanifest` if you need to confirm
 ## PWA and service worker notes
 
 - `vite-plugin-pwa` writes the service worker to `dist/sw.js` and registers it from `src/main.tsx`.
-- The generated manifest scope is `/ChordSheetStudioPro/` in a Pages build.
+- The generated manifest scope is `/ChordSheetStudio/` in a Pages build.
 - Workbox precache URLs are stored relative to the service worker, so they resolve correctly under the project site path.
 - If a previously installed copy keeps serving old assets, unregister the service worker in DevTools → Application → Service Workers, or clear site data and reload.
 - SoundFonts and Google Fonts are cached at runtime by the service worker, so the app can be reused offline after the first visit.
@@ -101,13 +101,13 @@ Inspect `dist/index.html` and `dist/manifest.webmanifest` if you need to confirm
 
 1. Open the browser console and check for 404s.
 2. Confirm the workflow built with `GITHUB_PAGES=true`.
-3. Confirm asset URLs in `dist/index.html` start with `/ChordSheetStudioPro/`.
+3. Confirm asset URLs in `dist/index.html` start with `/ChordSheetStudio/`.
 4. Confirm Pages is set to deploy from GitHub Actions.
 
 ### Assets load but the PWA does not install
 
 - Open the site over HTTPS (GitHub Pages provides this).
-- Check that `manifest.webmanifest` is reachable at `/ChordSheetStudioPro/manifest.webmanifest`.
+- Check that `manifest.webmanifest` is reachable at `/ChordSheetStudio/manifest.webmanifest`.
 - Confirm the icon URLs in the manifest return `200`.
 - Clear stale site data if a previous manifest was installed from a different base path.
 

@@ -4,8 +4,8 @@
 
 Turn chord progressions into printable A4 chord sheets with guitar, keyboard, and ukulele voicings, transposition, capo support, audio playback, and a built-in drum machine.
 
-- **Live app:** https://rayfoolshs.github.io/ChordSheetStudioPro/
-- **Source:** https://github.com/rayfoolshs/ChordSheetStudioPro
+- **Live app:** https://rayfoolshs.github.io/ChordSheetStudio/
+- **Source:** https://github.com/rayfoolshs/ChordSheetStudio
 
 ## Features
 
@@ -108,8 +108,8 @@ Yes. The metronome and drums have separate controls:
 The app is deployed automatically to GitHub Pages from the `main` branch.
 
 - **Workflow:** [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml)
-- **Live URL:** https://rayfoolshs.github.io/ChordSheetStudioPro/
-- **Base path:** `/ChordSheetStudioPro/` when `GITHUB_PAGES=true`
+- **Live URL:** https://rayfoolshs.github.io/ChordSheetStudio/
+- **Base path:** `/ChordSheetStudio/` when `GITHUB_PAGES=true`
 
 See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full deployment and troubleshooting guide.
 

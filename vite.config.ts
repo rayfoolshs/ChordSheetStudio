@@ -6,7 +6,7 @@ import {VitePWA} from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   // GitHub Pages project sites are served from /<repo>/, not the domain root.
-  const base = process.env.GITHUB_PAGES === 'true' ? '/ChordSheetStudioPro/' : '/';
+  const base = process.env.GITHUB_PAGES === 'true' ? '/ChordSheetStudio/' : '/';
 
   return {
     base,

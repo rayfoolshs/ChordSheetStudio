@@ -19,12 +19,13 @@ All notable changes to Chord Sheet Studio are documented here.
 - Playback sequencing now runs on eighth-note steps so drum hits can be placed on and between beats.
 - Swing delays off-beat eighth notes from straight time to a triplet shuffle.
 - Added persisted `drumPattern`, `drumVolume`, and `swing` values to saved charts, exports, and share links.
-- Vite now uses the `/ChordSheetStudioPro/` base path when building for GitHub Pages.
+- Vite now uses the `/ChordSheetStudio/` base path when building for GitHub Pages.
 
 ### Fixed
 
 - Drum layering is compressed to reduce clipping from simultaneous kick, snare, and cymbal hits.
 - Shared app links and the header icon now respect the Vite base path used by GitHub Pages.
+- GitHub Pages assets now resolve under `/ChordSheetStudio/` after the repository was renamed, fixing the blank page on the published site.
 
 ### Documentation
 
